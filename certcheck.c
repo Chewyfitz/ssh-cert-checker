@@ -10,6 +10,7 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int main(int argc, char *argv[]){
@@ -23,10 +24,12 @@ int main(int argc, char *argv[]){
 
 	FILE *in_file = NULL;
 
-	if((in_file = fopen(filename, r)) == NULL){
+	if((in_file = fopen(filename, "r")) == NULL){
 		fprintf(stderr, "ERR: File not found.\n");
 		return 1;
 	}
+	fprintf(stdout, "Successfully opened file at %s\n", filename);
+
 
 	return 0;
 }

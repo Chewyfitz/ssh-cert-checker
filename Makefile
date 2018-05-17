@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS= -g -pthread -lssl -lcrypto
 DEPS= 
-OBJ= 
+OBJ= certcheck.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
