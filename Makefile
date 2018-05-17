@@ -6,8 +6,8 @@ OBJ=
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-cert: $(OBJ)
+certcheck: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 clean:
-	rm -f cert *.o
+	rm -f certcheck *.o
