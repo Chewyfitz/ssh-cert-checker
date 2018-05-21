@@ -92,16 +92,10 @@ int main(int argc, char *argv[]){
 		//check_cert(cert);
 	}
 
-<<<<<<< HEAD
 	// Write the results to file
 	// write_results(results);
 
 	free(line);
-=======
-	// Traverse the linked list and write the results to file
-	// write_results(head);
-	// Free the certificate memory.
->>>>>>> 33d783ac030b941122c5d70bbd75482543ada691
 	free_certs();
 	return 0;
 }
@@ -155,7 +149,6 @@ int extract_domcert(char *string, char *path, char **certfile, char **domain){
 
 // Helper functions for linked lists
 certificate_t *make_cert(char* certfile, char* domain){
-	// makes a list node
 	certificate_t *cert = malloc(sizeof(certificate_t));
 	assert(cert != NULL);
 
@@ -166,7 +159,6 @@ certificate_t *make_cert(char* certfile, char* domain){
 
 certificate_t *add_to_list(certificate_t* cert){
 	// returns a pointer to the head of the list
-	// adds a passed certificate_t to the list at the head.
 	static struct certificate_t *head = NULL;
 	if(cert == NULL){
 		return head;
