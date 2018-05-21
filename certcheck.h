@@ -11,6 +11,10 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+// Need something bigger than the minimum requirement of 2048 bits.
+#define CERT_INIT_SIZE 4096
+#define MAXLINELENGTH 1000
+
 typedef struct certificate_t{
 	char certfile[100];
 	char domain[100];
@@ -18,6 +22,7 @@ typedef struct certificate_t{
 	struct certificate_t* next;
 }certificate_t;
 
+int extract_domcert(char *string, char *path, char **certfile, char **domain);
 certificate_t *make_cert(char* certfile, char* domain);
 certificate_t *add_to_list(certificate_t* cert);
 void free_certs();
