@@ -16,8 +16,8 @@
 #define MAXLINELENGTH 1000
 
 typedef struct certificate_t{
-	char certfile[100];
-	char domain[100];
+	char certfile[MAXLINELENGTH];
+	char domain[MAXLINELENGTH];
 	int pass;
 	struct certificate_t* next;
 }certificate_t;

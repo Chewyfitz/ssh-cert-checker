@@ -31,7 +31,11 @@ int main(int argc, char *argv[]){
 	char *prepath = calloc(strlen(temp), sizeof(char));
 	strcpy(prepath, strtok(temp, "/"));
 	int pre_len = strlen(prepath);
-	if(pre_len > 1){
+	if(strtok(NULL, "/") == NULL){
+		free(temp);
+		prepath[0] = '\0';
+		pre_len = 0;
+	}else if(pre_len > 1){
 		pre_len++;
 		free(temp);
 		temp = calloc(pre_len + 1, sizeof(char));
@@ -47,49 +51,25 @@ int main(int argc, char *argv[]){
 
 
 	char *line = calloc(MAXLINELENGTH, sizeof(char));
-	int len = 0, certfile_len = 0;
 	char *certfile = NULL, *domain = NULL;
 	// Make a list of Certificates to check
 	while(fscanf(in_file, "%s\n ", line) != EOF){
-		printf("%s\n", line);
-		len = strlen(line);
+		// allocate some memory to be copied to by extract_domcert
 		certfile = calloc(MAXLINELENGTH, sizeof(char));
 		domain = calloc(MAXLINELENGTH, sizeof(char));
 
+		// TODO: add pre_len to extract_domcert to check if a prepath is required.
 		if(!extract_domcert(line, prepath, &certfile, &domain)){
 			break;
 		}
-
-		printf("Certfile: %s, Domain: %s\nprepath: %s\n", certfile, domain, prepath);
-
-		len = 0;
-
-		// len = strlen(line);
-		// char *certfile_tok = strtok(line, ",");
-		// char *domain_tok = strtok(NULL, ",");
-		//
-		// certfile_len = strlen(certfile_tok);
-		//
-		// char *certfile = calloc(certfile_len, sizeof(char));
-		// char *domain = calloc(len - certfile_len + 1, sizeof(char));
-		//
-		// strcpy(certfile, certfile_tok);
-		// strcpy(domain, domain_tok);
-		//
-		// if(pre_len > 1){
-		// 	temp = calloc(strlen(certfile) + pre_len + 2, sizeof(char));
-		// 	temp = strcat(prepath, certfile);
-		// 	free(certfile);
-		// 	certfile = temp;
-		// 	temp = NULL;
-		// }
 
 		certificate_t *cert = make_cert(certfile, domain);
 
 		// Add the certificate to a linked list and check it.
 		head = add_to_list(cert);
 		fprintf(stdout, "Checking \"%s\" for domain \"%s\"\n", certfile, domain);
-		//check_cert(cert);
+		check_cert(cert);
+		fprintf(stdout, "\n");
 	}
 
 	// Write the results to file
@@ -215,6 +195,10 @@ void check_cert(certificate_t *cert){
 	    fprintf(stderr, "Error in loading certificate");
 	    exit(EXIT_FAILURE);
 	}
+
+	// Loaded! Checking time...
+
+	fprintf(stdout, "Loaded \"%s\" to check for domain \"%s\"\n", cert->certfile, cert->domain);
 
 
 	return;
