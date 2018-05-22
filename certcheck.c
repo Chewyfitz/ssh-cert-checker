@@ -198,34 +198,44 @@ void check_cert(certificate_t *cert){
 	    exit(EXIT_FAILURE);
 	}
 
-	// Loaded! Checking time...
+	fprintf(stdout, "Loaded \"%s\" to check for domain \"%s\"\n", cert->certfile, cert->domain);
+
+	// Loaded! Checking time... ===============================================
 
 	ASN1_TIME *notBefore = X509_get_notBefore(current_cert);
 	ASN1_TIME *notAfter = X509_get_notAfter(current_cert);
-	// if *from or *to is NULL, uses current time
-	// int ASN1_TIME_diff(int *pday, int *psec, const ASN1_TIME *from, const ASN1_TIME *to);
 
 	int beforeDay = 0;
 	int beforeSec = 0;
+	// if *from or *to is NULL, uses current time
 	ASN1_TIME_diff(&beforeDay, &beforeSec, notBefore, NULL);
 
 	int afterDay = 0;
 	int afterSec = 0;
 	ASN1_TIME_diff(&afterDay, &afterSec, NULL, notAfter);
 
-	int beforepass = 0;
-	int afterpass = 0;
+	int after_start_pass = 0;
+	int before_end_pass = 0;
 	if(beforeDay > 0 || beforeSec > 0){
-		beforepass = 1;
+		after_start_pass = 1;
 	}
 	if(afterDay > 0 || afterSec > 0){
-		afterpass = 1;
+		before_end_pass = 1;
 	}
 
-	fprintf(stdout, "Checking time: difference to notBefore: %d Days, %d Seconds (%d) | difference to notAfter %d Days, %d Seconds (%d)", beforeSec, beforeDay, beforepass, afterSec, afterDay, afterpass);
+	fprintf(stdout, "Checking time: difference to notBefore: %d Days, %d Seconds (%d) | difference to notAfter %d Days, %d Seconds (%d)\n", beforeSec, beforeDay, after_start_pass, afterSec, afterDay, before_end_pass);
 
-	fprintf(stdout, "Loaded \"%s\" to check for domain \"%s\"\n", cert->certfile, cert->domain);
+	// Checking size of key ===================================================
+	// (numbytes * numbits/byte)
+	int len = current_cert->cert_info->key->public_key->length *8;
+	int longer_2048_pass = 0;
+	if(len > 2048){
+		longer_2048_pass = 1;
+	}
 
+	fprintf(stdout, "Checking size: size = %d (%d)\n", len, longer_2048_pass);
+
+	// Checking 
 
 	return;
 }
