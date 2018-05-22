@@ -168,6 +168,29 @@ void free_certs(){
 	return;
 }
 
+// returns 1 on success, 0 on fail
+int validate_name(const char* certdomain, const char* givendomain){
+	// validate from the end to the start (this allows for wildcards)
+	int i;
+	int len_cert, len_given;
+	len_cert = strlen(certdomain);
+	len_given = strlen(givendomain);
+
+	for(i = 0; i < len_cert && i < len_given; i++){
+		if(certdomain[len_cert - i] != givendomain[len_given - i]){
+			if(certdomain[len_cert - i] == '*' && certdomain[len_given - i+1] == '.'){
+				return 1;
+			}
+			return 0;
+		}
+	}
+	if(len_cert < len_given){
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
 // Actual checking takes place here
 void check_cert(certificate_t *cert){
 	// Got a decent amount of this from the supplied certexample.c
@@ -225,7 +248,7 @@ void check_cert(certificate_t *cert){
 
 	fprintf(stdout, "Checking time: difference to notBefore: %d Days, %d Seconds (%d) | difference to notAfter %d Days, %d Seconds (%d)\n", beforeSec, beforeDay, after_start_pass, afterSec, afterDay, before_end_pass);
 
-	// Checking size of key ===================================================
+	// Checking size of key... ================================================
 	// (numbytes * numbits/byte)
 	int len = current_cert->cert_info->key->public_key->length *8;
 	int longer_2048_pass = 0;
@@ -235,7 +258,26 @@ void check_cert(certificate_t *cert){
 
 	fprintf(stdout, "Checking size: size = %d (%d)\n", len, longer_2048_pass);
 
-	// Checking 
+	// Checking domain name correct ===========================================
+	char *name_value_copy = calloc(strlen(current_cert->name) + 1, sizeof(char));
+	strcpy(name_value_copy, current_cert->name);
+	// Could extract country, state, location, organisation, and organisation unit here
+	int i;
+	int name_value_len = strlen(name_value_copy);
+	for(i = 0; i < name_value_len && (name_value_copy[i] != 'C' || name_value_copy[i+1] != 'N'  || name_value_copy[i+2] != '='); i++){
+	} // skip past what we don't need
+	//CN should be at the end
+	i += 3;
+	name_value_len = strlen(&(name_value_copy[i]));
+	char givendomain[name_value_len + 1];
+	int j;
+	for(j = 0; j<name_value_len && (name_value_copy[i+j] != '\n' || name_value_copy[i+j] != '\0'); j++){
+		givendomain[j] = name_value_copy[ i+j ];
+	}
+	givendomain[name_value_len] = '\0';
+	
+	//char* givendomain = x509_get_subject_name(current_cert);
+	int common_name_pass = validate_name(cert->domain, givendomain);
 
 	return;
 }

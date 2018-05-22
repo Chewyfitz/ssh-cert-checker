@@ -27,4 +27,5 @@ int extract_domcert(char *string, char *path, char **certfile, char **domain);
 certificate_t *make_cert(char* certfile, char* domain, char* line);
 certificate_t *add_to_list(certificate_t* cert);
 void free_certs();
+int validate_name(const char* certdomain, const char* givendomain);
 void check_cert(certificate_t *cert);
