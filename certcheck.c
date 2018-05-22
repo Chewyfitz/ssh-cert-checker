@@ -63,7 +63,7 @@ int main(int argc, char *argv[]){
 			break;
 		}
 
-		certificate_t *cert = make_cert(certfile, domain);
+		certificate_t *cert = make_cert(certfile, domain, line);
 
 		// Add the certificate to a linked list and check it.
 		head = add_to_list(cert);
@@ -128,10 +128,12 @@ int extract_domcert(char *string, char *path, char **certfile, char **domain){
 }
 
 // Helper functions for linked lists
-certificate_t *make_cert(char* certfile, char* domain){
+certificate_t *make_cert(char* certfile, char* domain, char* line){
 	certificate_t *cert = malloc(sizeof(certificate_t));
 	assert(cert != NULL);
 
+	cert->line = calloc(MAXLINELENGTH, sizeof(char));
+	strcpy(cert->line, line);
 	strcpy(cert->certfile, certfile);
 	strcpy(cert->domain, domain);
 	return cert;
@@ -197,6 +199,30 @@ void check_cert(certificate_t *cert){
 	}
 
 	// Loaded! Checking time...
+
+	ASN1_TIME *notBefore = X509_get_notBefore(current_cert);
+	ASN1_TIME *notAfter = X509_get_notAfter(current_cert);
+	// if *from or *to is NULL, uses current time
+	// int ASN1_TIME_diff(int *pday, int *psec, const ASN1_TIME *from, const ASN1_TIME *to);
+
+	int beforeDay = 0;
+	int beforeSec = 0;
+	ASN1_TIME_diff(&beforeDay, &beforeSec, notBefore, NULL);
+
+	int afterDay = 0;
+	int afterSec = 0;
+	ASN1_TIME_diff(&afterDay, &afterSec, NULL, notAfter);
+
+	int beforepass = 0;
+	int afterpass = 0;
+	if(beforeDay > 0 || beforeSec > 0){
+		beforepass = 1;
+	}
+	if(afterDay > 0 || afterSec > 0){
+		afterpass = 1;
+	}
+
+	fprintf(stdout, "Checking time: difference to notBefore: %d Days, %d Seconds (%d) | difference to notAfter %d Days, %d Seconds (%d)", beforeSec, beforeDay, beforepass, afterSec, afterDay, afterpass);
 
 	fprintf(stdout, "Loaded \"%s\" to check for domain \"%s\"\n", cert->certfile, cert->domain);
 
