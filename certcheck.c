@@ -275,9 +275,12 @@ void check_cert(certificate_t *cert){
 		givendomain[j] = name_value_copy[ i+j ];
 	}
 	givendomain[name_value_len] = '\0';
-	
+
 	//char* givendomain = x509_get_subject_name(current_cert);
 	int common_name_pass = validate_name(cert->domain, givendomain);
 
+	// Checking constraints... ================================================
+		// *current_cert->cert_info->extensions
+		// *current_cert->cert_info->extensions->stack->data
 	return;
 }
