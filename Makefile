@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -g -pthread -lssl -lcrypto
+CFLAGS= -g -lssl -lcrypto
 DEPS= 
 OBJ= certcheck.o
 

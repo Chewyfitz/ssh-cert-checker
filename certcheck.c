@@ -8,6 +8,7 @@
 
 int main(int argc, char *argv[]){
 	// make sure the command line stuff is right
+	// char *version = SSLeay_version(SSLEAY_VERSION);
 	if(argc < 2){
 		fprintf(stderr, "not enough arguments\nusage: ./certcheck pathToTestFile\n");
 		return 1;
@@ -259,6 +260,8 @@ void check_cert(certificate_t *cert){
 	fprintf(stdout, "Checking size: size = %d (%d)\n", len, longer_2048_pass);
 
 	// Checking domain name correct ===========================================
+	fprintf(stdout, "Checking Domain name correct: ");
+	int common_name_pass = 0;
 	char *name_value_copy = calloc(strlen(current_cert->name) + 1, sizeof(char));
 	strcpy(name_value_copy, current_cert->name);
 	// Could extract country, state, location, organisation, and organisation unit here
@@ -276,11 +279,45 @@ void check_cert(certificate_t *cert){
 	}
 	givendomain[name_value_len] = '\0';
 
-	//char* givendomain = x509_get_subject_name(current_cert);
-	int common_name_pass = validate_name(cert->domain, givendomain);
+	common_name_pass = validate_name(cert->domain, givendomain);
+
+	fprintf(stdout, "(%d)\n", common_name_pass);
 
 	// Checking constraints... ================================================
-		// *current_cert->cert_info->extensions
-		// *current_cert->cert_info->extensions->stack->data
+	fprintf(stdout, "Checking CA flag: ");
+	int not_CA_pass = 0;
+	X509_EXTENSION *ext = X509_get_ext(current_cert, X509_get_ext_by_NID(current_cert, NID_basic_constraints, -1));
+	
+	const struct asn1_object_st *ext_obj = X509_EXTENSION_get_object(ext);
+	BUF_MEM *bio_ptr = NULL;
+
+	char buff[1024];
+	OBJ_obj2txt(buff, 1024, ext_obj, 0);
+
+	BIO *ext_bio = BIO_new(BIO_s_mem());
+	//if(!X509V3_EXT_print(ext_bio, (X509_EXTENSION *)ext_obj, 0, 0)){
+	if(!X509V3_EXT_print(ext_bio, ext, 0, 0)){
+		fprintf(stderr, "Error reading extensions\n");
+	}
+	BIO_flush(ext_bio);
+	BIO_get_mem_ptr(ext_bio, &bio_ptr);
+
+	//make it a proper string
+	char *buf = calloc(bio_ptr->length + 1, sizeof(char));
+	memcpy(buf, bio_ptr->data, bio_ptr->length);
+	buf[bio_ptr->length] = '\0';
+
+	// Should match exactly because of how the cert is structured.
+	for(i=0; (i + 4) < bio_ptr->length; i++){
+		if(buf[i] == 'F' && buf[i + 1] == 'A' && buf[i + 2] == 'L' && buf[i + 3] == 'S' && buf[i + 4] == 'E'){
+			not_CA_pass = 1;
+		}
+	}
+
+	fprintf(stdout, "(%d)\n", not_CA_pass);
+
+
+	// *current_cert->cert_info->extensions
+	// *current_cert->cert_info->extensions->stack->data
 	return;
 }
