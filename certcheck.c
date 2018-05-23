@@ -19,7 +19,7 @@ int main(int argc, char *argv[]){
 	struct certificate_t *head;
 
 	FILE *in_file = NULL;
-	fprintf(stdout, "Successfully opened file at %s\n", filename);
+	DEBUGPRINT("Successfully opened file at %s\n", filename);
 	if((in_file = fopen(filename, "r")) == NULL){
 		fprintf(stderr, "ERR: File not found.\n");
 		return 1;
@@ -68,9 +68,9 @@ int main(int argc, char *argv[]){
 
 		// Add the certificate to a linked list and check it.
 		head = add_to_list(cert);
-		fprintf(stdout, "Checking \"%s\" for domain \"%s\"\n", certfile, domain);
+		DEBUGPRINT("Checking \"%s\" for domain \"%s\"\n", certfile, domain);
 		check_cert(cert);
-		fprintf(stdout, "\n");
+		DEBUGPRINT("\n");
 	}
 
 	// Write the results to file
@@ -150,7 +150,7 @@ certificate_t *add_to_list(certificate_t* cert){
 	if(head == NULL){
 		head = cert;
 	} else {
-		head->next = cert;
+		cert->next = head;
 		head = cert;
 	}
 	return head;
@@ -164,6 +164,7 @@ void free_certs(){
 	while(head != NULL){
 		temp = head;
 		head = head->next;
+		free(temp->line);
 		free(temp);
 	}
 	return;
@@ -190,6 +191,33 @@ int validate_name(const char* certdomain, const char* givendomain){
 	} else {
 		return 1;
 	}
+}
+
+// returns a pointer to a string which NEEDS TO BE FREED
+char *get_ext_string(X509_EXTENSION *ext){
+	const struct asn1_object_st *ext_obj = X509_EXTENSION_get_object(ext);
+	BUF_MEM *bio_ptr = NULL;
+
+	char* buff = calloc(1024, sizeof(char));
+	assert(buff != NULL);
+	OBJ_obj2txt(buff, 1024, ext_obj, 0);
+
+	BIO *ext_bio = BIO_new(BIO_s_mem());
+
+	// Read the extension and get the string
+	if(!X509V3_EXT_print(ext_bio, ext, 0, 0)){
+		fprintf(stderr, "Error reading extensions\n");
+	}
+	BIO_flush(ext_bio);
+	BIO_get_mem_ptr(ext_bio, &bio_ptr);
+
+	//make it a proper string
+	char *buf = calloc(bio_ptr->length + 1, sizeof(char));
+	memcpy(buf, bio_ptr->data, bio_ptr->length);
+	buf[bio_ptr->length] = '\0';
+
+	free(buff);
+	return buf;
 }
 
 // Actual checking takes place here
@@ -222,7 +250,7 @@ void check_cert(certificate_t *cert){
 	    exit(EXIT_FAILURE);
 	}
 
-	fprintf(stdout, "Loaded \"%s\" to check for domain \"%s\"\n", cert->certfile, cert->domain);
+	DEBUGPRINT("Loaded \"%s\" to check for domain \"%s\"\n", cert->certfile, cert->domain);
 
 	// Loaded! Checking time... ===============================================
 
@@ -247,7 +275,8 @@ void check_cert(certificate_t *cert){
 		before_end_pass = 1;
 	}
 
-	fprintf(stdout, "Checking time: difference to notBefore: %d Days, %d Seconds (%d) | difference to notAfter %d Days, %d Seconds (%d)\n", beforeSec, beforeDay, after_start_pass, afterSec, afterDay, before_end_pass);
+	DEBUGPRINT("Checking time: difference to notBefore: %d Days, %d Seconds (%d)\n", beforeSec, beforeDay, after_start_pass);
+	DEBUGPRINT("Checking time: difference to notAfter:  %d Days, %d Seconds (%d)\n", afterSec, afterDay, before_end_pass);
 
 	// Checking size of key... ================================================
 	// (numbytes * numbits/byte)
@@ -257,10 +286,10 @@ void check_cert(certificate_t *cert){
 		longer_2048_pass = 1;
 	}
 
-	fprintf(stdout, "Checking size: size = %d (%d)\n", len, longer_2048_pass);
+	DEBUGPRINT("Checking size: size = %d (%d)\n", len, longer_2048_pass);
 
 	// Checking domain name correct ===========================================
-	fprintf(stdout, "Checking Domain name correct: ");
+	DEBUGPRINT("Checking Domain name correct: ");
 	int common_name_pass = 0;
 	char *name_value_copy = calloc(strlen(current_cert->name) + 1, sizeof(char));
 	strcpy(name_value_copy, current_cert->name);
@@ -269,7 +298,7 @@ void check_cert(certificate_t *cert){
 	int name_value_len = strlen(name_value_copy);
 	for(i = 0; i < name_value_len && (name_value_copy[i] != 'C' || name_value_copy[i+1] != 'N'  || name_value_copy[i+2] != '='); i++){
 	} // skip past what we don't need
-	//CN should be at the end
+	//CN is at the end
 	i += 3;
 	name_value_len = strlen(&(name_value_copy[i]));
 	char givendomain[name_value_len + 1];
@@ -281,43 +310,57 @@ void check_cert(certificate_t *cert){
 
 	common_name_pass = validate_name(cert->domain, givendomain);
 
-	fprintf(stdout, "(%d)\n", common_name_pass);
+	DEBUGPRINT("(%d)\n", common_name_pass);
 
 	// Checking constraints... ================================================
-	fprintf(stdout, "Checking CA flag: ");
 	int not_CA_pass = 0;
+	int ext_key_client_auth_pass = 0;
+
 	X509_EXTENSION *ext = X509_get_ext(current_cert, X509_get_ext_by_NID(current_cert, NID_basic_constraints, -1));
+
+	char* buf = NULL;
+	buf = get_ext_string(ext);
+
+	DEBUGPRINT("Checking CA flag: ");
+
+	if(strstr(buf, "CA:FALSE") != NULL){
+		not_CA_pass = 1;
+	}
+	free(buf);
+	buf = NULL;
+
+	DEBUGPRINT("(%d)\n", not_CA_pass);
+	ext = X509_get_ext(current_cert, X509_get_ext_by_NID(current_cert, NID_ext_key_usage, -1));
+
+	buf = get_ext_string(ext);
 	
-	const struct asn1_object_st *ext_obj = X509_EXTENSION_get_object(ext);
-	BUF_MEM *bio_ptr = NULL;
+	DEBUGPRINT("Checking Extended Key Usage: ");
 
-	char buff[1024];
-	OBJ_obj2txt(buff, 1024, ext_obj, 0);
-
-	BIO *ext_bio = BIO_new(BIO_s_mem());
-	//if(!X509V3_EXT_print(ext_bio, (X509_EXTENSION *)ext_obj, 0, 0)){
-	if(!X509V3_EXT_print(ext_bio, ext, 0, 0)){
-		fprintf(stderr, "Error reading extensions\n");
+	if(strstr(buf, "TLS Web Server Authentication") != NULL){
+		ext_key_client_auth_pass = 1;
 	}
-	BIO_flush(ext_bio);
-	BIO_get_mem_ptr(ext_bio, &bio_ptr);
+	free(buf);
+	buf = NULL;
 
-	//make it a proper string
-	char *buf = calloc(bio_ptr->length + 1, sizeof(char));
-	memcpy(buf, bio_ptr->data, bio_ptr->length);
-	buf[bio_ptr->length] = '\0';
-
-	// Should match exactly because of how the cert is structured.
-	for(i=0; (i + 4) < bio_ptr->length; i++){
-		if(buf[i] == 'F' && buf[i + 1] == 'A' && buf[i + 2] == 'L' && buf[i + 3] == 'S' && buf[i + 4] == 'E'){
-			not_CA_pass = 1;
-		}
-	}
-
-	fprintf(stdout, "(%d)\n", not_CA_pass);
+	DEBUGPRINT("(%d)\n", ext_key_client_auth_pass);
 
 
 	// *current_cert->cert_info->extensions
 	// *current_cert->cert_info->extensions->stack->data
+	DEBUGPRINT("Results: (%d, %d, %d, %d, %d, %d)", after_start_pass, before_end_pass, longer_2048_pass, common_name_pass, not_CA_pass, ext_key_client_auth_pass);
+	if(after_start_pass == 1 
+		&& before_end_pass == 1 
+		&& longer_2048_pass == 1 
+		&& common_name_pass == 1 
+		&& not_CA_pass == 1 
+		&& ext_key_client_auth_pass == 1){
+
+		cert->pass = 1;
+	} else {
+		cert->pass = 0;
+	}
+
+	DEBUGPRINT("Pass? (%d)\n\n", cert->pass);
+	free(name_value_copy);
 	return;
 }

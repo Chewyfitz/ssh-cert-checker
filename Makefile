@@ -1,5 +1,6 @@
 CC=gcc
 CFLAGS= -g -lssl -lcrypto
+DEBUG = -DDEBUG=1
 DEPS= 
 OBJ= certcheck.o
 
@@ -9,5 +10,8 @@ OBJ= certcheck.o
 certcheck: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS)
 
+debug: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS) $(DEBUG)
+
 clean:
-	rm -f certcheck *.o
+	rm -f certcheck debug *.o

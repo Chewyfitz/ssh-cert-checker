@@ -15,6 +15,12 @@
 #define CERT_INIT_SIZE 4096
 #define MAXLINELENGTH 1000
 
+#ifndef DEBUG
+#define DEBUGPRINT(...) do{ } while ( 0 )
+#else
+#define DEBUGPRINT(...) (printf)(__VA_ARGS__)
+#endif
+
 typedef struct certificate_t{
 	char certfile[MAXLINELENGTH];
 	char domain[MAXLINELENGTH];
@@ -28,4 +34,5 @@ certificate_t *make_cert(char* certfile, char* domain, char* line);
 certificate_t *add_to_list(certificate_t* cert);
 void free_certs();
 int validate_name(const char* certdomain, const char* givendomain);
+char *get_ext_string(X509_EXTENSION *ext);
 void check_cert(certificate_t *cert);
