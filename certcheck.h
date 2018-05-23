@@ -9,13 +9,13 @@
 #include <assert.h>
 
 // was originally planning to multithread...
-// Decided it's too complex.
+// Decided it's not really worth the slight performance gain.
 // #include <pthread.h>
 // #include <semaphore.h>
 
 // Need something bigger than the minimum requirement of 2048 bits.
 #define CERT_INIT_SIZE 4096
-#define MAXLINELENGTH 1000
+#define MAXLINELENGTH 1024
 
 // Defining a debug print only when DEBUG is defined (use -DDEBUG compilation flag)
 #ifndef DEBUG

@@ -189,6 +189,7 @@ certificate_t *make_cert(char* certfile, char* domain, char* line){
 	strcpy(cert->line, line);
 	strcpy(cert->certfile, certfile);
 	strcpy(cert->domain, domain);
+	cert->next = NULL;
 	return cert;
 }
 
@@ -390,9 +391,6 @@ void check_cert(certificate_t *cert){
 		}
 	}
 
-
-	// *current_cert->cert_info->extensions
-	// *current_cert->cert_info->extensions->stack->data
 	DEBUGPRINT("Results: (%d, %d, %d, %d, %d, %d)", after_start_pass, before_end_pass, longer_2048_pass, common_name_pass, not_CA_pass, ext_key_client_auth_pass);
 	
 	// if ANY of the tests failed, the certificate failed =====================
@@ -403,13 +401,15 @@ void check_cert(certificate_t *cert){
 		&& not_CA_pass == 1 
 		&& ext_key_client_auth_pass == 1){
 
+		// store the pass status in the certificate_t struct
 		cert->pass = 1;
 	} else {
 		cert->pass = 0;
 	}
 
 	DEBUGPRINT("Pass? (%d)\n\n", cert->pass);
-	
+
+	// free the stuff that needs to be freed
 	X509_free(current_cert);
 	BIO_free_all(certificate_bio);
 	free(name_value_copy);
@@ -418,6 +418,7 @@ void check_cert(certificate_t *cert){
 
 // Helper functions for check_cert --------------------------------------------
 
+// Validate a givendomain against a certdomain (the one on the cert)
 // returns 1 on success, 0 on fail
 int validate_name(const char* certdomain, const char* givendomain){
 	// validate from the end to the start (this allows for wildcards)
@@ -453,9 +454,10 @@ char *get_ext_string(X509_EXTENSION *ext){
 	const struct asn1_object_st *ext_obj = X509_EXTENSION_get_object(ext);
 	BUF_MEM *bio_ptr = NULL;
 
-	char* buff = calloc(1024, sizeof(char));
+	// abusing MAXLINELENGTH a bit here, but it's the same number...
+	char* buff = calloc(MAXLINELENGTH, sizeof(char));
 	assert(buff != NULL);
-	OBJ_obj2txt(buff, 1024, ext_obj, 0);
+	OBJ_obj2txt(buff, MAXLINELENGTH, ext_obj, 0);
 
 	BIO *ext_bio = BIO_new(BIO_s_mem());
 
