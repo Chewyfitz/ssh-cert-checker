@@ -33,12 +33,13 @@ typedef struct certificate_t{
 	struct certificate_t* next;
 }certificate_t;
 
-// function prototypes
+// function prototypes (This is also the order of the program)
 int extract_domcert(char *string, char *path, char **certfile, char **domain);
 certificate_t *make_cert(char* certfile, char* domain, char* line);
 certificate_t *add_to_list(certificate_t* cert);
-void free_certs();
+void write_results(certificate_t* head);
+void free_certs(certificate_t *head);
+
+void check_cert(certificate_t *cert);
 int validate_name(const char* certdomain, const char* givendomain);
 char *get_ext_string(X509_EXTENSION *ext);
-void check_cert(certificate_t *cert);
-void write_results(certificate_t* head);

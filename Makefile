@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -lssl -lcrypto -g
+CFLAGS= -lssl -lcrypto -g -DDEBUG
 DEPS= 
 OBJ= certcheck.o
 
