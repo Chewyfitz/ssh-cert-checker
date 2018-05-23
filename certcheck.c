@@ -1,14 +1,13 @@
 /*
 **	Aidan Fitzpatrick (835833)
 **	Computer Systems Assignment 2.
-**
+**  Compile with -DDEBUG if you want to see the DEBUGPRINTs :)
 */
 
 #include "certcheck.h"
 
 int main(int argc, char *argv[]){
 	// make sure the command line stuff is right
-	// char *version = SSLeay_version(SSLEAY_VERSION);
 	if(argc < 2){
 		fprintf(stderr, "not enough arguments\nusage: ./certcheck pathToTestFile\n");
 		return 1;
@@ -74,7 +73,7 @@ int main(int argc, char *argv[]){
 	}
 
 	// Write the results to file
-	// write_results(results);
+	write_results(head);
 
 	free(line);
 	free_certs();
@@ -402,4 +401,13 @@ void check_cert(certificate_t *cert){
 	DEBUGPRINT("Pass? (%d)\n\n", cert->pass);
 	free(name_value_copy);
 	return;
+}
+
+void write_results(certificate_t* head){
+	certificate_t *current = head;
+	FILE *fp = fopen("output.csv", "w+");
+	while(current != NULL){
+		fprintf(fp, "%s,%s,%d\n", current->certfile, current->domain, current->pass);
+		current = current->next;
+	}
 }
