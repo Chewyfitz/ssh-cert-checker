@@ -1,0 +1,1 @@
+Doube check that the -g -DDEBUG aren't in place in Makefile or you'll end up with a lot of excess output :)

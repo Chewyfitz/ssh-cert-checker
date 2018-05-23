@@ -181,20 +181,27 @@ int validate_name(const char* certdomain, const char* givendomain){
 	for(i = 0; i < len_cert && i < len_given; i++){
 		if(certdomain[len_cert - i] != givendomain[len_given - i]){
 			if(certdomain[len_cert - i] == '*' && certdomain[len_given - i+1] == '.'){
+				DEBUGPRINT("Wildcard Success\n");
 				return 1;
 			}
+			DEBUGPRINT("Wildcard Failure\n");
 			return 0;
 		}
 	}
 	if(len_cert < len_given){
+		DEBUGPRINT("Match Failure\n");
 		return 0;
 	} else {
+		DEBUGPRINT("Match SUCCESS\n");
 		return 1;
 	}
 }
 
 // returns a pointer to a string which NEEDS TO BE FREED
 char *get_ext_string(X509_EXTENSION *ext){
+	if(ext == NULL){
+		return NULL;
+	}
 	const struct asn1_object_st *ext_obj = X509_EXTENSION_get_object(ext);
 	BUF_MEM *bio_ptr = NULL;
 
@@ -343,6 +350,38 @@ void check_cert(certificate_t *cert){
 	buf = NULL;
 
 	DEBUGPRINT("(%d)\n", ext_key_client_auth_pass);
+
+	if(common_name_pass != 1){
+		ext = X509_get_ext(current_cert, X509_get_ext_by_NID(current_cert, NID_subject_alt_name, -1));
+
+		buf = get_ext_string(ext);
+		if(buf != NULL){
+			DEBUGPRINT("Checking Subject Alternative Name: ");
+
+			DEBUGPRINT("\nbuf: %s ", buf);
+			char* alt_name_pointer;
+			int i = 0;
+
+			// Check all the alternate names
+
+			char *string = strtok(buf, ",");
+			for(i = 0; string[i] != ':'; i++);
+			DEBUGPRINT("%d |", i+1);
+			string = string + i + 1;
+			DEBUGPRINT("%s\n", string);
+			common_name_pass = validate_name(cert->domain, string);
+			while((string = strtok(NULL, ",")) != NULL && common_name_pass != 1){
+				for(i = 0; string[i] != ':'; i++);
+				DEBUGPRINT("%d |", i+1);
+				string = string + i + 1;
+				DEBUGPRINT("%s\n", string);
+				common_name_pass = validate_name(cert->domain, string);
+			}
+			free(buf);
+			buf = NULL;
+			DEBUGPRINT("(%d)\n", common_name_pass);
+		}
+	}
 
 
 	// *current_cert->cert_info->extensions
